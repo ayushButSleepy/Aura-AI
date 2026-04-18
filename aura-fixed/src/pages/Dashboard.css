@@ -1,0 +1,79 @@
+.dashboard-container {
+  display: flex; flex-direction: column; gap: 1.8rem;
+  max-width: 1100px; margin: 0 auto;
+}
+.dashboard-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.greeting-sub { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
+.greeting { font-size: 2rem; font-weight: 700; margin-bottom: 0.4rem; letter-spacing: -0.5px; }
+.subtitle { color: var(--text-secondary); font-size: 0.95rem; }
+
+.wellness-score-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.score-label { position: absolute; text-align: center; display: flex; flex-direction: column; }
+.score-num { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+.score-text { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+.sdg-banner {
+  display: flex; align-items: center; gap: 0.8rem;
+  padding: 0.8rem 1.2rem;
+  background: linear-gradient(135deg, rgba(0,229,195,0.06), rgba(168,85,247,0.06));
+  border: 1px solid rgba(0,229,195,0.15);
+  border-radius: var(--radius-md);
+  font-size: 0.82rem; color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+.sdg-banner strong { color: var(--text-primary); }
+.sdg-icon { color: var(--accent-teal); flex-shrink: 0; }
+.sdg-stat {
+  margin-left: auto; display: flex; align-items: center; gap: 0.3rem;
+  color: var(--accent-amber); font-weight: 500; font-size: 0.78rem; white-space: nowrap;
+}
+
+.metrics-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;
+}
+
+.chart-section { padding: 1.5rem 1.8rem; }
+.chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.8rem; }
+.chart-header h2 { font-size: 1.1rem; font-weight: 600; }
+.chart-tabs { display: flex; gap: 0.4rem; }
+.chart-tab {
+  padding: 0.35rem 0.9rem; border-radius: 20px;
+  border: 1px solid var(--surface-border);
+  background: transparent; color: var(--text-secondary);
+  font-size: 0.78rem; font-family: var(--font-main); cursor: pointer;
+  transition: var(--transition);
+}
+.chart-tab:hover { background: var(--surface-hover); color: var(--text-primary); }
+.chart-tab.active { font-weight: 600; }
+.chart-body { margin-top: 0.5rem; }
+
+.chart-tooltip {
+  background: rgba(7,8,13,0.95); border: 1px solid var(--surface-border);
+  border-radius: 10px; padding: 0.7rem 1rem;
+  font-size: 0.8rem; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.tooltip-label { color: var(--text-muted); margin-bottom: 0.3rem; font-size: 0.75rem; }
+
+.challenges-section { padding: 1.5rem 1.8rem; }
+.section-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.2rem; }
+.section-header h2 { font-size: 1.1rem; font-weight: 600; }
+.section-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem; }
+.challenge-progress-pill {
+  padding: 0.3rem 0.9rem; border-radius: 20px;
+  border: 1px solid var(--surface-border); font-size: 0.78rem; font-weight: 600;
+}
+.challenges-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.challenge-item {
+  display: flex; align-items: center; gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm); cursor: pointer;
+  transition: var(--transition); font-size: 0.9rem;
+}
+.challenge-item:hover { background: var(--surface-hover); border-color: var(--surface-border); }
+.challenge-item.complete { background: rgba(0,229,195,0.04); border-color: rgba(0,229,195,0.12); }
+.challenge-item.complete span { text-decoration: line-through; opacity: 0.45; }
+.challenge-check { flex-shrink: 0; }
