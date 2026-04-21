@@ -72,7 +72,13 @@ body::before {
 }
 .font-display { font-family: var(--font-display); }
 .app-container { display: flex; height: 100vh; position: relative; z-index: 1; }
-.main-content { flex: 1; padding: 2rem 2.5rem; overflow-y: auto; }
+.main-content { flex: 1; padding: 2rem 2.5rem; overflow-y: auto; transition: padding 0.3s ease; }
+.main-content.full-width { padding: 0; }
+
+@media (max-width: 768px) {
+  .app-container { flex-direction: column; }
+  .main-content { padding: 1.5rem 1rem 80px 1rem; } /* leave room for bottom nav */
+}
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

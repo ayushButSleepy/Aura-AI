@@ -1,8 +1,15 @@
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Brain, User, Settings, HeartPulse, LogIn } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Brain, User, Settings, HeartPulse, LogIn, LogOut } from 'lucide-react';
 import './Sidebar.css';
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    navigate('/auth');
+  };
+
   return (
     <nav className="glass-nav sidebar-container">
       <div className="sidebar-logo">
@@ -46,6 +53,11 @@ const Sidebar = () => {
           <span className="sdg-label">Good Health & Well-being</span>
         </div>
       </div>
+
+      <button className="nav-item logout-btn" onClick={handleLogout} style={{ marginTop: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+        <LogOut size={18} />
+        <span>Log Out</span>
+      </button>
     </nav>
   );
 };

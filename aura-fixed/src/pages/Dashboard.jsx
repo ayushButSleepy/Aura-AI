@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Activity, Moon, Droplets, Target, CheckCircle2, Circle, TrendingUp, Globe2, Heart } from 'lucide-react';
+import { Activity, Moon, Droplets, Target, CheckCircle2, Circle, TrendingUp, Globe2, Heart, Flame } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import DeviceTracker from '../components/DeviceTracker';
 import './Dashboard.css';
 
 const DEFAULT_CHALLENGES = [
@@ -49,8 +50,16 @@ const Dashboard = () => {
     return DEFAULT_CHALLENGES;
   });
   const [activeChart, setActiveChart] = useState('steps');
-  const profile = JSON.parse(localStorage.getItem('aura-profile') || '{"name":"Alex"}');
-  const firstName = profile.name.split(' ')[0];
+  const profile = JSON.parse(localStorage.getItem('aura-profile') || '{"name":"User", "weight": "70"}');
+  const firstName = (profile.name || "User").split(' ')[0];
+  const weight = parseInt(profile.weight) || 70;
+  
+  // Calculate Calories (Steps * 0.04 * (Weight / 70))
+  // Assuming 6230 steps today dynamically if no log exists
+  const todayLog = JSON.parse(localStorage.getItem('aura-log-today') || '{"values":{"steps":6230}}');
+  const stepsToday = todayLog?.values?.steps || 6230;
+  const caloriesBurned = Math.round(stepsToday * 0.04 * (weight / 70));
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
 
@@ -109,6 +118,15 @@ const Dashboard = () => {
       color: '#f472b6',
       subtitle: '✓ Healthy resting',
     },
+    {
+      title: 'Calories Burned',
+      value: caloriesBurned.toLocaleString(),
+      unit: 'kcal',
+      icon: Flame,
+      progress: Math.min(100, Math.round((caloriesBurned / 500) * 100)),
+      color: '#fbbf24',
+      subtitle: 'Based on activity',
+    }
   ];
 
   return (
@@ -162,8 +180,13 @@ const Dashboard = () => {
         ))}
       </section>
 
+      {/* Web API Tracker */}
+      <section className="tracker-section animate-fade-up delay-3" style={{ marginBottom: '2rem' }}>
+        <DeviceTracker />
+      </section>
+
       {/* Weekly Chart */}
-      <section className="chart-section glass-panel animate-fade-up delay-3">
+      <section className="chart-section glass-panel animate-fade-up delay-4">
         <div className="chart-header">
           <h2 className="font-display">7-Day Trends</h2>
           <div className="chart-tabs">

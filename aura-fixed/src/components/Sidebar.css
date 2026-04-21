@@ -95,3 +95,53 @@
   background-clip: text;
 }
 .sdg-label { font-size: 0.7rem; color: var(--text-secondary); }
+
+.logout-btn { color: #ef4444; }
+.logout-btn:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+@media (max-width: 768px) {
+  .sidebar-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 80px;
+    padding: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 50;
+    border-right: none;
+    border-top: 1px solid var(--surface-border);
+    min-width: unset;
+  }
+  .sidebar-logo, .nav-section-label, .sdg-badge, .nav-item span {
+    display: none;
+  }
+  .nav-links {
+    flex-direction: row;
+    height: 100%;
+    align-items: center;
+    gap: 0;
+  }
+  .bottom-links {
+    margin-top: 0;
+  }
+  .nav-item {
+    height: 100%;
+    padding: 0 1.5rem;
+    border-radius: 0;
+    justify-content: center;
+    min-height: 44px; /* Touch target */
+    min-width: 44px;
+  }
+  .nav-item.active {
+    border: none;
+    border-top: 2px solid var(--accent-teal);
+    background: linear-gradient(180deg, rgba(0,229,195,0.1), transparent);
+  }
+  .logout-btn {
+    margin-top: 0 !important;
+    width: auto !important;
+  }
+}

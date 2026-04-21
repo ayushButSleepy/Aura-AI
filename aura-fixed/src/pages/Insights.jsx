@@ -2,22 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, Sparkles, User, Loader2 } from 'lucide-react';
 import './Insights.css';
 
-const SYSTEM_PROMPT = `You are Aura AI, a warm and knowledgeable personal health companion built for SDG 3 (Good Health and Well-being). You analyze wellness data and provide personalized preventative health insights.
-
-The user's current health data:
-- Steps today: 6,230 (goal: 10,000 — 62% complete)
-- Sleep last night: 7.2 hours (goal: 8 hours — 90% quality score)
-- Hydration: 1.5 liters (goal: 3 liters — 50% complete)
-- Heart rate: 72 bpm (healthy resting range)
-- Wellness score: 72/100
-
-Weekly trends:
-- Steps: Mon 5200, Tue 7800, Wed 6100, Thu 9200, Fri 8400, Sat 4500, Sun 6230
-- Sleep: Mon 6.5h, Tue 7.0h, Wed 6.8h, Thu 7.5h, Fri 7.2h, Sat 8.1h, Sun 7.2h
-- Hydration: Mon 1.2L, Tue 1.8L, Wed 1.5L, Thu 2.0L, Fri 1.7L, Sat 1.4L, Sun 1.5L
-
-Be concise, friendly and empathetic. Provide 1-2 specific, actionable insights based on the data. Reference SDG 3 and global health access where relevant. Keep responses to 3-5 sentences max. Use plain text only, no markdown.`;
-
 const SUGGESTIONS = [
   'How is my sleep trend this week?',
   'What can I do to hit 10,000 steps today?',
@@ -29,7 +13,7 @@ const Insights = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hi! I'm your Aura AI health companion. I've looked at your health data — your sleep has been consistent this week which is great. However, your hydration is only at 50% today and your step count needs a push. Ask me anything about your wellness trends!",
+      text: "Hi! I'm your Aura AI health companion. I've looked at your health data — ask me anything for personal advice tailored to your goals!",
       sender: 'ai',
     },
   ]);
@@ -40,6 +24,54 @@ const Insights = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  const generateSystemPrompt = () => {
+    const profile = JSON.parse(localStorage.getItem('aura-profile') || '{}');
+    const todayLog = JSON.parse(localStorage.getItem('aura-log-today') || '{"values":{}}');
+    
+    const weight = parseInt(profile.weight) || 70;
+    const height = parseInt(profile.height) || 170;
+    const age = parseInt(profile.age) || 25;
+    const gender = profile.gender || 'Other';
+    const activityMap = {
+      'Sedentary': 1.2,
+      'Lightly active': 1.375,
+      'Moderately active': 1.55,
+      'Very active': 1.725
+    };
+    const activityFactor = activityMap[profile.activityLevel] || 1.2;
+
+    let bmr = 10 * weight + 6.25 * height - 5 * age;
+    bmr += (gender === 'Female') ? -161 : 5;
+    const dailyCals = Math.round(bmr * activityFactor);
+    const heightM = height / 100;
+    const bmi = (weight / (heightM * heightM)).toFixed(1);
+
+    return `You are Aura AI, a warm and knowledgeable personal health companion built for SDG 3. You analyze wellness data and provide personalized preventative health insights.
+
+User Profile:
+- Name: ${profile.name || 'User'}
+- Age: ${age}, Gender: ${gender}
+- Height: ${height}cm, Weight: ${weight}kg, BMI: ${bmi}
+- Activity Level: ${profile.activityLevel || 'Sedentary'}
+- Goal: ${profile.healthGoal || 'General wellness'}
+- Daily Calorie Target (TDEE): ~${dailyCals} kcal
+- Recommended Daily Steps: 10,000
+
+Today's Logged Data:
+- Steps: ${todayLog.values?.steps || 0}
+- Sleep: ${todayLog.values?.sleep || 0} hours
+- Hydration: ${todayLog.values?.water || 0} liters
+- Heart Rate: ${todayLog.values?.heartRate || 70} bpm
+- Calories Burned via Activity: ~${Math.round((todayLog.values?.steps || 0) * 0.04 * (weight / 70))} kcal
+
+Weekly Tends:
+- Steps avg: 6500
+- Sleep avg: 7.1 hours
+- Streak: 3 days
+
+Be concise, friendly and empathetic. Provide 1-2 specific, actionable insights specific to this exact person, not generic tips. Reference their stats directly. Keep responses to 3-5 sentences max. Use plain text only, no markdown.`;
+  };
 
   const sendMessage = async (text) => {
     const userText = text || input.trim();
@@ -56,6 +88,8 @@ const Insights = () => {
         content: m.text,
       }));
 
+      const dynamicSystemPrompt = generateSystemPrompt();
+
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -66,7 +100,7 @@ const Insights = () => {
           model: 'llama-3.3-70b-versatile',
           max_tokens: 1000,
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: dynamicSystemPrompt },
             ...history,
             { role: 'user', content: userText },
           ],
