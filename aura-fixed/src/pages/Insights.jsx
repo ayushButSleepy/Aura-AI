@@ -27,8 +27,11 @@ const Insights = () => {
 
   const generateSystemPrompt = () => {
     const profile = JSON.parse(localStorage.getItem('aura-profile') || '{}');
-    const todayLog = JSON.parse(localStorage.getItem('aura-log-today') || '{"values":{}}');
+    const todayLogRaw = localStorage.getItem('aura-log-today');
+    const todayLog = todayLogRaw ? JSON.parse(todayLogRaw) : { values: {} };
+    const settings = JSON.parse(localStorage.getItem('aura-settings') || '{}');
     
+    // Fallback constants
     const weight = parseInt(profile.weight) || 70;
     const height = parseInt(profile.height) || 170;
     const age = parseInt(profile.age) || 25;
@@ -41,11 +44,30 @@ const Insights = () => {
     };
     const activityFactor = activityMap[profile.activityLevel] || 1.2;
 
-    let bmr = 10 * weight + 6.25 * height - 5 * age;
-    bmr += (gender === 'Female') ? -161 : 5;
+    // Mifflin-St Jeor Equation
+    let bmr;
+    if (gender === 'Female') {
+      bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+    } else {
+      bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5; // Default to Male calculation for Other
+    }
     const dailyCals = Math.round(bmr * activityFactor);
+    
     const heightM = height / 100;
     const bmi = (weight / (heightM * heightM)).toFixed(1);
+
+    // Dynamic Goals
+    const stepsGoal = settings.stepsGoal || 10000;
+    const sleepGoal = settings.sleepGoal || 8;
+    const waterGoal = settings.waterGoal || 3;
+
+    // Weekly Trends
+    const weeklyDataRaw = localStorage.getItem('aura-weekly-data');
+    let weeklyStepsAvg = 0;
+    if (weeklyDataRaw) {
+      const data = JSON.parse(weeklyDataRaw);
+      weeklyStepsAvg = Math.round(data.reduce((acc, curr) => acc + curr.steps, 0) / 7);
+    }
 
     return `You are Aura AI, a warm and knowledgeable personal health companion built for SDG 3. You analyze wellness data and provide personalized preventative health insights.
 
@@ -56,21 +78,24 @@ User Profile:
 - Activity Level: ${profile.activityLevel || 'Sedentary'}
 - Goal: ${profile.healthGoal || 'General wellness'}
 - Daily Calorie Target (TDEE): ~${dailyCals} kcal
-- Recommended Daily Steps: 10,000
 
-Today's Logged Data:
+Daily Goals:
+- Steps: ${stepsGoal}
+- Sleep: ${sleepGoal} hours
+- Hydration: ${waterGoal} liters
+
+Today's Actual Logged Data:
 - Steps: ${todayLog.values?.steps || 0}
 - Sleep: ${todayLog.values?.sleep || 0} hours
 - Hydration: ${todayLog.values?.water || 0} liters
 - Heart Rate: ${todayLog.values?.heartRate || 70} bpm
 - Calories Burned via Activity: ~${Math.round((todayLog.values?.steps || 0) * 0.04 * (weight / 70))} kcal
+- Mood Score (1-5): ${todayLog.mood || 'Not logged'}
 
-Weekly Tends:
-- Steps avg: 6500
-- Sleep avg: 7.1 hours
-- Streak: 3 days
+Weekly Trends:
+- Steps avg: ${weeklyStepsAvg > 0 ? weeklyStepsAvg : 'Not enough data'}
 
-Be concise, friendly and empathetic. Provide 1-2 specific, actionable insights specific to this exact person, not generic tips. Reference their stats directly. Keep responses to 3-5 sentences max. Use plain text only, no markdown.`;
+Be concise, friendly and empathetic. Provide 1-2 specific, actionable insights specific to this exact person, not generic tips. Reference their real numbers in every response. Keep responses to 3-5 sentences max. Use plain text only, no markdown.`;
   };
 
   const sendMessage = async (text) => {
@@ -84,33 +109,43 @@ Be concise, friendly and empathetic. Provide 1-2 specific, actionable insights s
 
     try {
       const history = messages.map(m => ({
-        role: m.sender === 'ai' ? 'assistant' : 'user',
-        content: m.text,
+        role: m.sender === 'ai' ? 'model' : 'user',
+        parts: [{ text: m.text }],
       }));
 
       const dynamicSystemPrompt = generateSystemPrompt();
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          max_tokens: 1000,
-          messages: [
-            { role: 'system', content: dynamicSystemPrompt },
+          contents: [
             ...history,
-            { role: 'user', content: userText },
+            { role: "user", parts: [{ text: userText }] }
           ],
+          systemInstruction: {
+            parts: [{ text: dynamicSystemPrompt }]
+          },
+          generationConfig: {
+            maxOutputTokens: 1000,
+            temperature: 0.7
+          }
         }),
       });
 
       const data = await response.json();
-      const aiText = data.choices?.[0]?.message?.content || "I couldn't generate a response. Please try again.";
+      
+      let aiText = "I couldn't generate a response. Please try again.";
+      if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+        aiText = data.candidates[0].content.parts[0].text;
+      }
+
       setMessages(prev => [...prev, { id: Date.now() + 1, text: aiText, sender: 'ai' }]);
-    } catch {
+    } catch (e) {
+      console.error(e);
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         text: 'Connection error. Please check your network and try again.',

@@ -5,23 +5,25 @@ import Insights from './pages/Insights';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Log from './pages/Log';
-import Auth from './pages/Auth';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 
 const PrivateRoute = ({ children }) => {
   const user = localStorage.getItem('currentUser');
-  return user ? children : <Navigate to="/auth" />;
+  return user ? children : <Navigate to="/login" />;
 };
 
 const AppLayout = () => {
   const location = useLocation();
-  const isAuthPage = location.pathname === '/auth';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
 
   return (
     <div className="app-container">
       {!isAuthPage && <Sidebar />}
       <main className={`main-content ${isAuthPage ? 'full-width' : ''}`}>
         <Routes>
-          <Route path="/auth" element={<Auth />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/insights" element={<PrivateRoute><Insights /></PrivateRoute>} />
           <Route path="/log" element={<PrivateRoute><Log /></PrivateRoute>} />

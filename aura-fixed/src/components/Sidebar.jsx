@@ -7,7 +7,7 @@ const Sidebar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
-    navigate('/auth');
+    navigate('/login');
   };
 
   return (

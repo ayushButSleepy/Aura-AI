@@ -13,7 +13,7 @@ const DEFAULT_CHALLENGES = [
   { id: 5, text: 'Sleep by 10:30 PM tonight', done: false },
 ];
 
-const WEEK_DATA = [
+const DEFAULT_WEEK_DATA = [
   { day: 'Mon', steps: 5200, sleep: 6.5, water: 1.2 },
   { day: 'Tue', steps: 7800, sleep: 7.0, water: 1.8 },
   { day: 'Wed', steps: 6100, sleep: 6.8, water: 1.5 },
@@ -50,18 +50,55 @@ const Dashboard = () => {
     return DEFAULT_CHALLENGES;
   });
   const [activeChart, setActiveChart] = useState('steps');
-  const profile = JSON.parse(localStorage.getItem('aura-profile') || '{"name":"User", "weight": "70"}');
+
+  // Real log data
+  const profile = JSON.parse(localStorage.getItem('aura-profile') || '{"name":"User", "weight": "70", "height": "170", "age": "25"}');
   const firstName = (profile.name || "User").split(' ')[0];
   const weight = parseInt(profile.weight) || 70;
   
-  // Calculate Calories (Steps * 0.04 * (Weight / 70))
-  // Fetch tracking data context
-  const todayLog = JSON.parse(localStorage.getItem('aura-log-today') || '{"values":{"steps":6230}}');
-  const stepsToday = todayLog?.values?.steps || 6230;
-  const caloriesBurned = Math.round(stepsToday * 0.04 * (weight / 70));
+  const savedLogRaw = localStorage.getItem('aura-log-today');
+  const savedLog = savedLogRaw ? JSON.parse(savedLogRaw) : null;
+  const isLoggedToday = savedLog && savedLog.date === new Date().toDateString();
+  const logValues = isLoggedToday ? savedLog.values : { steps: 0, sleep: 0, water: 0, heartRate: 0 };
+  
+  // Weekly data
+  const weeklyDataRaw = localStorage.getItem('aura-weekly-data');
+  const weekData = weeklyDataRaw ? JSON.parse(weeklyDataRaw) : DEFAULT_WEEK_DATA;
 
+  // Wellness score
+  // Goals: 10000 steps, 8h sleep, 3L water, 70 hr
+  const stepsScore = Math.min((logValues.steps || 0) / 10000, 1);
+  const sleepScore = Math.min((logValues.sleep || 0) / 8, 1);
+  const waterScore = Math.min((logValues.water || 0) / 3, 1);
+  const hrDiff = Math.abs((logValues.heartRate || 70) - 70);
+  const hrScore = Math.max(0, 1 - (hrDiff / 30)); // 70 is perfect, 100 is 0 points
+
+  const calculatedScore = isLoggedToday 
+    ? Math.round(((stepsScore + sleepScore + waterScore + hrScore) / 4) * 100)
+    : 0;
+
+  // Calories logic
+  const stepsBurn = Math.round((logValues.steps || 0) * 0.04 * (weight / 70));
+  const workouts = isLoggedToday ? (savedLog.workouts || []) : [];
+  const workoutBurn = workouts.reduce((acc, curr) => acc + curr.burn, 0);
+  const totalBurned = stepsBurn + workoutBurn;
+  
+  const foods = isLoggedToday ? (savedLog.food || []) : [];
+  const totalConsumed = foods.reduce((acc, curr) => acc + curr.cals, 0);
+
+  // Time metrics
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+
+  const timeSinceLastUpdate = () => {
+    if (!isLoggedToday || !savedLog.timestamp) return '';
+    const diffMins = Math.floor((Date.now() - savedLog.timestamp) / 60000);
+    if (diffMins === 0) return 'Just now';
+    if (diffMins < 60) return `${diffMins} mins ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  };
+  const lastUpdated = timeSinceLastUpdate();
 
   const toggleChallenge = (id) => {
     const updated = challenges.map(c => c.id === id ? { ...c, done: !c.done } : c);
@@ -73,7 +110,6 @@ const Dashboard = () => {
   };
 
   const completedCount = challenges.filter(c => c.done).length;
-  const wellnessScore = Math.round(62 + (completedCount / challenges.length) * 20);
 
   const chartConfig = {
     steps: { key: 'steps', label: 'Steps', color: '#00e5c3', unit: 'steps' },
@@ -84,48 +120,48 @@ const Dashboard = () => {
   const metrics = [
     {
       title: 'Steps Today',
-      value: '6,230',
+      value: logValues.steps.toLocaleString(),
       unit: 'steps',
       icon: Activity,
-      progress: 62,
+      progress: Math.min(100, (logValues.steps / 10000) * 100),
       color: '#00e5c3',
-      subtitle: '↑ 8% vs yesterday',
+      subtitle: isLoggedToday ? 'Daily goal: 10,000' : 'Log your steps',
     },
     {
       title: 'Sleep Quality',
-      value: '7.2',
+      value: logValues.sleep.toString(),
       unit: 'hours',
       icon: Moon,
-      progress: 85,
+      progress: Math.min(100, (logValues.sleep / 8) * 100),
       color: '#a855f7',
-      subtitle: '↑ Great deep sleep',
+      subtitle: isLoggedToday ? 'Daily goal: 8 hrs' : 'Log your sleep',
     },
     {
       title: 'Hydration',
-      value: '1.5',
+      value: logValues.water.toString(),
       unit: 'liters',
       icon: Droplets,
-      progress: 50,
+      progress: Math.min(100, (logValues.water / 3) * 100),
       color: '#3b82f6',
-      subtitle: '↓ Drink more water',
+      subtitle: isLoggedToday ? 'Daily goal: 3 L' : 'Log your hydration',
     },
     {
       title: 'Heart Rate',
-      value: '72',
+      value: logValues.heartRate.toString(),
       unit: 'bpm',
       icon: Heart,
-      progress: 80,
+      progress: (logValues.heartRate > 0) ? 80 : 0,
       color: '#f472b6',
-      subtitle: '✓ Healthy resting',
+      subtitle: isLoggedToday ? 'Goal: ~70 bpm' : 'Log your HR',
     },
     {
-      title: 'Calories Burned',
-      value: caloriesBurned.toLocaleString(),
-      unit: 'kcal',
+      title: 'Calories',
+      value: totalConsumed.toLocaleString(),
+      unit: 'in',
       icon: Flame,
-      progress: Math.min(100, Math.round((caloriesBurned / 500) * 100)),
+      progress: Math.min(100, Math.round((totalConsumed / 2000) * 100)),
       color: '#fbbf24',
-      subtitle: 'Based on activity',
+      subtitle: `Burned: ${totalBurned.toLocaleString()} kcal`,
     }
   ];
 
@@ -134,9 +170,12 @@ const Dashboard = () => {
       {/* Header */}
       <header className="dashboard-header animate-fade-up delay-1">
         <div>
-          <p className="greeting-sub">Sunday, {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</p>
+          <p className="greeting-sub">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            {lastUpdated && <span style={{ marginLeft: '1rem', color: 'var(--text-muted)' }}>Updated {lastUpdated}</span>}
+          </p>
           <h1 className="greeting font-display">{greeting}, {firstName}!</h1>
-          <p className="subtitle">Your wellness score is <span style={{ color: 'var(--accent-teal)', fontWeight: 600 }}>{wellnessScore}</span> today. Keep pushing!</p>
+          <p className="subtitle">Your wellness score is <span style={{ color: 'var(--accent-teal)', fontWeight: 600 }}>{calculatedScore}</span> today.</p>
         </div>
         <div className="wellness-score-ring">
           <svg viewBox="0 0 80 80" width="80" height="80">
@@ -145,7 +184,7 @@ const Dashboard = () => {
               cx="40" cy="40" r="34" fill="none"
               stroke="url(#scoreGrad)" strokeWidth="7"
               strokeLinecap="round"
-              strokeDasharray={`${2 * Math.PI * 34 * wellnessScore / 100} ${2 * Math.PI * 34}`}
+              strokeDasharray={`${2 * Math.PI * 34 * (calculatedScore / 100)} ${2 * Math.PI * 34}`}
               strokeDashoffset={2 * Math.PI * 34 * 0.25}
               transform="rotate(-90 40 40)"
             />
@@ -157,21 +196,29 @@ const Dashboard = () => {
             </defs>
           </svg>
           <div className="score-label">
-            <span className="score-num font-display">{wellnessScore}</span>
+            <span className="score-num font-display">{calculatedScore}</span>
             <span className="score-text">score</span>
           </div>
         </div>
       </header>
 
-      {/* SDG 3 Impact Banner */}
-      <div className="sdg-banner animate-fade-up delay-2">
-        <Globe2 size={18} className="sdg-icon" />
-        <div>
-          <strong>UN SDG 3 — Good Health & Well-being</strong>
-          <span> · Aura helps track preventative health metrics that reduce burden on healthcare systems globally</span>
+      {/* Unlogged Prompt */}
+      {!isLoggedToday && (
+        <div className="animate-fade-up delay-2 glass-panel" style={{ padding: '1rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(251, 191, 36, 0.1)', borderColor: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24' }}>
+          <Activity size={20} />
+          You haven't logged today yet — tap <strong>Log Today</strong> in the menu to get started.
         </div>
-        <div className="sdg-stat"><TrendingUp size={14}/> 2.1B people lack basic healthcare access</div>
-      </div>
+      )}
+
+      {/* SDG 3 Impact Banner */}
+      <div className="sdg-banner animate-fade-up delay-2" style={!isLoggedToday ? { display: 'none' } : {}}>
+         <Globe2 size={18} className="sdg-icon" />
+         <div>
+           <strong>UN SDG 3 — Good Health & Well-being</strong>
+           <span> · {calculatedScore >= 70 ? "Great job taking preventative action for your health today!" : "Every small step counts towards your preventative health goals."}</span>
+         </div>
+         <div className="sdg-stat"><TrendingUp size={14}/> Score: {calculatedScore}/100</div>
+       </div>
 
       {/* Metrics */}
       <section className="metrics-grid">
@@ -204,7 +251,7 @@ const Dashboard = () => {
         </div>
         <div className="chart-body">
           <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={WEEK_DATA} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+            <LineChart data={weekData} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
               <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false}/>
               <XAxis dataKey="day" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false}/>
