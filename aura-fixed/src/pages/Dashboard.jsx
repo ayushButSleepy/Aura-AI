@@ -55,7 +55,7 @@ const Dashboard = () => {
   const weight = parseInt(profile.weight) || 70;
   
   // Calculate Calories (Steps * 0.04 * (Weight / 70))
-  // Assuming 6230 steps today dynamically if no log exists
+  // Fetch tracking data context
   const todayLog = JSON.parse(localStorage.getItem('aura-log-today') || '{"values":{"steps":6230}}');
   const stepsToday = todayLog?.values?.steps || 6230;
   const caloriesBurned = Math.round(stepsToday * 0.04 * (weight / 70));

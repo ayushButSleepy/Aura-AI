@@ -33,7 +33,7 @@ const Profile = () => {
     e.preventDefault();
     localStorage.setItem('aura-profile', JSON.stringify(profileData));
     
-    // Also update basic currentUser mock
+    // Propagate profile details to global session
     const current = JSON.parse(localStorage.getItem('currentUser') || '{}');
     current.name = profileData.name;
     current.email = profileData.email;

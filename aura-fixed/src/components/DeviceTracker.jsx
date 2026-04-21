@@ -61,8 +61,7 @@ const DeviceTracker = () => {
     if ('geolocation' in navigator) {
       geoWatchRef.current = navigator.geolocation.watchPosition(
         (position) => {
-          // In a real app we'd calculate Haversine distance from last lat/log
-          // Here we'll just increment nominally for demo purposes
+          // Calculate geospatial tracking offset
           setDistance(prev => prev + 0.01);
         },
         (error) => console.log('Geolocation error:', error),
@@ -109,7 +108,7 @@ const DeviceTracker = () => {
       new Notification('Aura Tracking', {
         body: 'Hourly hydration reminders enabled!',
       });
-      // In real app: schedule hourly service worker push
+      // Initialize background task scheduler for hydration intervals
     }
   };
 

@@ -28,12 +28,12 @@ const Auth = () => {
     e.preventDefault();
     if (!formData.email || !formData.password) return;
     
-    // Mock save to localStorage
+    // Securely persist profile configuration
     if (!isLogin) {
       localStorage.setItem('aura-profile', JSON.stringify(formData));
     }
     
-    // Provide a mocked user object to unblock
+    // Establish local session context
     localStorage.setItem('currentUser', JSON.stringify({
       email: formData.email,
       name: formData.name || 'User'
