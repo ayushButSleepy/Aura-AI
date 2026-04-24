@@ -101,6 +101,17 @@ Be concise, friendly and empathetic. Provide 1-2 specific, actionable insights s
   const sendMessage = async (text) => {
     const userText = text || input.trim();
     if (!userText || loading) return;
+    
+    if (!import.meta.env.VITE_GEMINI_API_KEY) {
+      setMessages(prev => [...prev, { 
+        id: Date.now(), 
+        text: 'Gemini API key is not configured. Please add VITE_GEMINI_API_KEY to your .env file.', 
+        sender: 'ai' 
+      }]);
+      setLoading(false);
+      return;
+    }
+
     setInput('');
 
     const userMsg = { id: Date.now(), text: userText, sender: 'user' };
@@ -108,15 +119,20 @@ Be concise, friendly and empathetic. Provide 1-2 specific, actionable insights s
     setLoading(true);
 
     try {
-      const history = messages.map(m => ({
+      // Gemini requires history to start with user and strictly alternate.
+      // Removing the initial AI greeting (id: 1) ensures history starts with user.
+      const validMessages = messages.filter(m => m.id !== 1);
+      
+      const history = validMessages.map(m => ({
         role: m.sender === 'ai' ? 'model' : 'user',
         parts: [{ text: m.text }],
       }));
 
       const dynamicSystemPrompt = generateSystemPrompt();
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,11 +152,19 @@ Be concise, friendly and empathetic. Provide 1-2 specific, actionable insights s
         }),
       });
 
+      console.log('Gemini response status:', response.status);
       const data = await response.json();
+      console.log('Gemini response data:', JSON.stringify(data));
       
-      let aiText = "I couldn't generate a response. Please try again.";
-      if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-        aiText = data.candidates[0].content.parts[0].text;
+      if (data?.error) {
+        console.error('Gemini API error:', data.error);
+        throw new Error(data.error.message);
+      }
+
+      const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!aiText) {
+        throw new Error("Empty response or unexpected format from Gemini");
       }
 
       setMessages(prev => [...prev, { id: Date.now() + 1, text: aiText, sender: 'ai' }]);

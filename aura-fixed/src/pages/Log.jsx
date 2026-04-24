@@ -124,17 +124,24 @@ const Log = () => {
     const shortDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const todayStr = shortDayNames[new Date().getDay()];
     
-    weekData = weekData.map(dayObj => {
-      if (dayObj.day === todayStr) {
-        return {
-          ...dayObj,
-          steps: values.steps,
-          sleep: values.sleep,
-          water: values.water
-        };
-      }
-      return dayObj;
-    });
+    // Ensure today's data is the last data point
+    const lastDataPoint = weekData[weekData.length - 1];
+    if (lastDataPoint && lastDataPoint.day === todayStr) {
+      weekData[weekData.length - 1] = {
+        ...lastDataPoint,
+        steps: values.steps,
+        sleep: values.sleep,
+        water: values.water
+      };
+    } else {
+      weekData.shift();
+      weekData.push({
+        day: todayStr,
+        steps: values.steps,
+        sleep: values.sleep,
+        water: values.water
+      });
+    }
     
     localStorage.setItem('aura-weekly-data', JSON.stringify(weekData));
 
